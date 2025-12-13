@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+google_tokens.json
+
+# Logs
+*.log
+email_archiver.log
+
+# Database (too large for GitHub - upload to Railway separately)
+email_archive.db
+emails.db
+
+# Large files (upload to Railway persistent storage)
+attachments/
+uploads/
+
+# ChromaDB (will be regenerated)
+chroma_db/
+
+# Text reports (generated)
+*.txt
+!requirements.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+*.tmp
+*.bak

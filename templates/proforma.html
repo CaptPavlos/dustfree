@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Forma Invoice - DFW Professional</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Open Sans', Arial, sans-serif;
+            background: #1a1a2e;
+            padding: 20px;
+            color: #333;
+        }
+        .back-link {
+            max-width: 900px;
+            margin: 0 auto 15px;
+        }
+        .back-link a {
+            color: #bb3e18;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 3px solid #bb3e18;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .company-info h1 {
+            color: #bb3e18;
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+        .company-info p {
+            color: #666;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .invoice-details {
+            text-align: right;
+        }
+        .invoice-details h2 {
+            color: #bb3e18;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        .invoice-details .detail-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 20px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .invoice-details .label {
+            color: #bb3e18;
+            font-weight: 600;
+            min-width: 120px;
+        }
+        input[type="text"],
+        input[type="date"],
+        textarea {
+            border: 1px solid #ddd;
+            padding: 6px 10px;
+            font-family: inherit;
+            font-size: 13px;
+            background: #fafafa;
+        }
+        input[type="text"]:focus,
+        input[type="date"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #bb3e18;
+            background: #fff;
+            box-shadow: 0 0 5px rgba(187, 62, 24, 0.2);
+        }
+        .addresses {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+        .address-block h3 {
+            color: #bb3e18;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+        .address-block textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            font-size: 12px;
+            resize: vertical;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        .items-section {
+            margin: 40px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .items-section table {
+            margin-bottom: 20px;
+        }
+        thead {
+            background: #bb3e18;
+            color: white;
+        }
+        th {
+            padding: 12px 10px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+            vertical-align: top;
+        }
+        /* Description textarea for wrapping */
+        td textarea.description {
+            width: 100%;
+            min-height: 60px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            font-family: inherit;
+            font-size: 13px;
+            resize: vertical;
+            background: #fafafa;
+        }
+        td textarea.description:focus {
+            outline: none;
+            border-color: #bb3e18;
+            background: #fff;
+        }
+        tbody tr:hover {
+            background: #f9f9f9;
+        }
+        input[type="number"] {
+            width: 100%;
+            border: 1px solid #ddd;
+            padding: 6px 8px;
+            font-family: inherit;
+            font-size: 13px;
+            background: #fafafa;
+            text-align: right;
+        }
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #bb3e18;
+            background: #fff;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .totals {
+            display: flex;
+            justify-content: flex-end;
+            gap: 30px;
+            margin-top: 30px;
+            margin-right: 20px;
+        }
+        .totals-column {
+            width: 200px;
+        }
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 13px;
+            border-bottom: 1px solid #eee;
+        }
+        .total-row.final {
+            border-top: 2px solid #bb3e18;
+            border-bottom: 2px solid #bb3e18;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 10px 0;
+            margin: 10px 0;
+            color: #bb3e18;
+        }
+        .notes-section {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        .notes-section h3 {
+            color: #bb3e18;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+        .notes-section textarea {
+            width: 100%;
+            min-height: 60px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            font-size: 12px;
+            resize: vertical;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        button {
+            background: #bb3e18;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: #8a2f14;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(187, 62, 24, 0.3);
+        }
+        button.secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        button.secondary:hover {
+            background: #e0e0e0;
+            transform: none;
+        }
+        button.save-btn {
+            background: #28a745;
+        }
+        button.save-btn:hover {
+            background: #218838;
+        }
+        .btn-small {
+            background: #bb3e18;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: background 0.2s;
+        }
+        .btn-small:hover {
+            background: #8a2f14;
+        }
+        .btn-small.delete {
+            background: #d9534f;
+        }
+        .btn-small.delete:hover {
+            background: #ac2925;
+        }
+        .org-select {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        .org-select label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #bb3e18;
+        }
+        .org-select select {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .org-select .edit-org-btn {
+            margin-top: 10px;
+            padding: 8px 16px;
+            font-size: 12px;
+            background: #6c757d;
+        }
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                padding: 20px;
+            }
+            .button-group, .back-link, .org-select, .action-col, .add-item-controls, .status-row {
+                display: none !important;
+            }
+            input, textarea {
+                border: none;
+                background: white;
+                color: #333;
+            }
+            input:focus, textarea:focus {
+                box-shadow: none;
+            }
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-badge.unpaid {
+            background: #dc3545;
+            color: white;
+        }
+        .status-badge.paid {
+            background: #28a745;
+            color: white;
+        }
+        .saved-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: none;
+        }
+        /* Modal for editing org details */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            width: 500px;
+            max-width: 90%;
+            z-index: 1001;
+        }
+        .modal h3 {
+            color: #bb3e18;
+            margin-bottom: 20px;
+        }
+        .modal label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        .modal textarea {
+            width: 100%;
+            min-height: 80px;
+            margin-bottom: 15px;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+    </style>
+</head>
+<body>
+    <div class="back-link">
+        <a href="/">← Back to Dashboard</a>
+    </div>
+    
+    <div class="saved-message" id="savedMessage">✓ Pro Forma Invoice Saved!</div>
+    
+    <!-- Modal for editing organization details -->
+    <div class="modal-overlay" id="orgModal" onclick="if(event.target===this) closeOrgModal();">
+        <div class="modal" onclick="event.stopPropagation();">
+            <h3>Edit Organization Details</h3>
+            <input type="hidden" id="editOrgDomain">
+            <label>Billing Address:</label>
+            <textarea id="editBillingAddress" placeholder="Company Name&#10;Street Address&#10;City, Postal Code&#10;Country&#10;VAT Number"></textarea>
+            <label>Shipping Address:</label>
+            <textarea id="editShippingAddress" placeholder="Company Name&#10;Street Address&#10;City, Postal Code&#10;Country"></textarea>
+            <div class="modal-buttons">
+                <button type="button" class="secondary" onclick="closeOrgModal()">Cancel</button>
+                <button type="button" onclick="saveOrgDetails()">Save Details</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="org-select">
+            <label>Quick Fill - Select Client:</label>
+            <select id="orgSelect" onchange="fillClient()">
+                <option value="">-- Select a client --</option>
+            </select>
+            <button class="edit-org-btn" onclick="openOrgModal()" id="editOrgBtn" style="display: none;">
+                ✏️ Edit Client Details
+            </button>
+        </div>
+        
+        <div class="header">
+            <div class="company-info">
+                <h1 style="font-size: 28px; margin-bottom: 4px;">DFW Professional</h1>
+                <p style="font-size: 13px; color: #bb3e18; font-weight: 600; margin-bottom: 12px;">Spray Booth Protective Film</p>
+                <p style="font-size: 11px; color: #666; margin-bottom: 4px;"><strong>Issuing Company Details</strong></p>
+                <p>Filippakis Pavlos - Angelos</p>
+                <p>Frynis 55<br>11633 Athens, Greece</p>
+                <p>VAT: EL158025701 | EORI: GR158025701</p>
+                <p>Email: dfw.greece@gmail.com</p>
+                <p>Phone: +30 698 6720 525</p>
+                <p style="margin-top: 12px; font-size: 11px; color: #999;">
+                    <strong>Bank Details</strong><br>
+                    IBAN: GR78 0110 1770 0000 1770 0509 031<br>
+                    SWIFT/BIC: ETHNGRAAXXX<br>
+                    Bank: National Bank of Greece<br>
+                    Account Holder: Filippakis Pavlos - Angelos
+                </p>
+            </div>
+            <div class="invoice-details">
+                <h2>Pro Forma Invoice</h2>
+                <div class="detail-row">
+                    <span class="label">Invoice No:</span>
+                    <input type="text" id="invoiceNo" placeholder="PFI-2025-001" style="width: 150px;">
+                </div>
+                <div class="detail-row">
+                    <span class="label">Date:</span>
+                    <input type="date" id="invoiceDate" style="width: 150px;">
+                </div>
+                <div class="detail-row">
+                    <span class="label">Valid Until:</span>
+                    <input type="date" id="validUntil" style="width: 150px;">
+                </div>
+                <div class="detail-row">
+                    <span class="label">Buyer's Ref:</span>
+                    <input type="text" id="buyersRef" placeholder="Customer PO/Ref" style="width: 150px;">
+                </div>
+                <div class="detail-row status-row">
+                    <span class="label">Status:</span>
+                    <select id="invoiceStatus" style="width: 150px; padding: 4px 8px;">
+                        <option value="UNPAID">UNPAID</option>
+                        <option value="PAID">PAID</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="addresses">
+            <div class="address-block">
+                <h3>Bill To</h3>
+                <textarea id="billTo" placeholder="Customer Name&#10;Street Address&#10;City, Postal Code&#10;Country&#10;VAT Number"></textarea>
+            </div>
+            <div class="address-block">
+                <h3>Ship To</h3>
+                <textarea id="shipTo" placeholder="Shipping Address&#10;Street Address&#10;City, Postal Code&#10;Country"></textarea>
+            </div>
+        </div>
+        
+        <div class="items-section">
+            <table id="itemsTable">
+                <thead>
+                    <tr>
+                        <th style="width: 50%;">Description</th>
+                        <th style="width: 12%;">Quantity</th>
+                        <th style="width: 13%;">Unit Price</th>
+                        <th style="width: 15%; text-align: right;">Amount</th>
+                        <th class="action-col" style="width: 10%; text-align: center;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="itemsBody">
+                    <tr class="item-row">
+                        <td><textarea class="description" placeholder="Item description"></textarea></td>
+                        <td><input type="number" class="quantity" placeholder="0" value="1" step="1"></td>
+                        <td><input type="number" class="unit-price" placeholder="0.00" value="0.00" step="0.01"></td>
+                        <td class="amount text-right">€0,00</td>
+                        <td class="action-col text-right"><button class="btn-small delete" onclick="deleteRow(this)">Delete</button></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="add-item-controls">
+                <button onclick="addRow()" style="margin-top: 10px;">+ Add Item</button>
+            </div>
+            
+            <div class="add-item-controls" style="margin-top: 15px;">
+                <label style="font-size: 12px; color: #666;">Quick Add Product:</label>
+                <select id="productSelect" onchange="addProductFromSelect(this); this.value='';" style="padding: 8px; margin-left: 10px;">
+                    <option value="">-- Select Product --</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="totals">
+            <div class="totals-column">
+                <div class="total-row">
+                    <span>Subtotal:</span>
+                    <span id="subtotal">€0,00</span>
+                </div>
+                <div class="total-row">
+                    <span>Tax (%):</span>
+                    <input type="number" id="taxRate" placeholder="0" value="0" step="0.01" style="width: 60px;">
+                </div>
+                <div class="total-row">
+                    <span>Tax Amount:</span>
+                    <span id="taxAmount">€0,00</span>
+                </div>
+                <div class="total-row">
+                    <span>Shipping:</span>
+                    <input type="number" id="shipping" placeholder="0" value="0" step="0.01" style="width: 80px;">
+                </div>
+                <div class="total-row final">
+                    <span>Total Due:</span>
+                    <span id="total">€0,00</span>
+                </div>
+                <div class="total-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #ccc;">
+                    <span style="color: #bb3e18;">50% Deposit:</span>
+                    <span id="deposit" style="color: #bb3e18;">€0,00</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="notes-section">
+            <h3>Notes & Terms</h3>
+            <textarea id="notes" placeholder="Payment terms, delivery information, special conditions, or additional notes...">Payment Terms: 50% deposit upon order confirmation, 50% before shipment.
+Delivery: Ex-Works Bucharest, Romania. Shipping costs not included.
+Validity: This pro forma invoice is valid for 30 days from the date of issue.</textarea>
+        </div>
+        
+        <div class="button-group">
+            <button class="save-btn" onclick="saveProforma()">💾 Save Pro Forma</button>
+            <button onclick="window.print()">🖨️ Print / Save as PDF</button>
+            <button class="secondary" onclick="resetForm()">↻ Clear Form</button>
+        </div>
+    </div>
+    
+    <script>
+        let selectedOrg = null;
+        let orgDetails = {}; // Store org billing/shipping details
+        
+        // Set default dates
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const validDate = new Date(today);
+            validDate.setDate(validDate.getDate() + 30);
+            
+            // Load clients and products
+            loadClients();
+            loadProducts();
+            
+            // Check if we're editing an existing proforma
+            const urlParams = new URLSearchParams(window.location.search);
+            const proformaId = urlParams.get('id');
+            
+            if (proformaId) {
+                // Load existing proforma
+                loadExistingProforma(proformaId);
+            } else {
+                // Set default dates for new proforma
+                document.getElementById('invoiceDate').value = today.toISOString().split('T')[0];
+                document.getElementById('validUntil').value = validDate.toISOString().split('T')[0];
+                
+                // Generate invoice number
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                document.getElementById('invoiceNo').value = `PFI-${year}-${month}-`;
+            }
+        });
+        
+        async function loadExistingProforma(id) {
+            try {
+                const response = await fetch(`/api/proforma/${id}`);
+                if (!response.ok) {
+                    alert('Pro forma invoice not found');
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                // Populate form fields
+                document.getElementById('invoiceNo').value = data.invoice_number || '';
+                document.getElementById('invoiceDate').value = data.invoice_date || '';
+                document.getElementById('validUntil').value = data.valid_until || '';
+                document.getElementById('buyersRef').value = data.buyers_ref || '';
+                document.getElementById('billTo').value = data.bill_to || '';
+                document.getElementById('shipTo').value = data.ship_to || '';
+                document.getElementById('taxRate').value = data.tax_rate || 0;
+                document.getElementById('shipping').value = data.shipping || 0;
+                document.getElementById('notes').value = data.notes || '';
+                document.getElementById('invoiceStatus').value = data.status || 'UNPAID';
+                
+                // Load items
+                const items = data.items || [];
+                const tbody = document.getElementById('itemsBody');
+                tbody.innerHTML = '';  // Clear existing rows
+                
+                if (items.length === 0) {
+                    // Add one empty row
+                    addRow();
+                } else {
+                    items.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.className = 'item-row';
+                        row.innerHTML = `
+                            <td><textarea class="description">${item.description || ''}</textarea></td>
+                            <td><input type="number" class="quantity" value="${item.quantity || 1}" step="1"></td>
+                            <td><input type="number" class="unit-price" value="${item.unit_price || 0}" step="0.01"></td>
+                            <td class="amount text-right">€0,00</td>
+                            <td class="action-col text-right"><button class="btn-small delete" onclick="deleteRow(this)">Delete</button></td>
+                        `;
+                        tbody.appendChild(row);
+                        
+                        row.querySelector('.quantity').addEventListener('input', calculateTotals);
+                        row.querySelector('.unit-price').addEventListener('input', calculateTotals);
+                    });
+                }
+                
+                calculateTotals();
+            } catch (error) {
+                console.error('Error loading proforma:', error);
+                alert('Error loading pro forma invoice');
+            }
+        }
+        
+        let clientsData = [];
+        
+        async function loadClients() {
+            try {
+                const response = await fetch('/api/production/clients');
+                clientsData = await response.json();
+                const select = document.getElementById('orgSelect');
+                
+                // Clear existing options
+                select.innerHTML = '<option value="">-- Select a client --</option>';
+                
+                clientsData.forEach(client => {
+                    const option = document.createElement('option');
+                    option.value = client.id;
+                    option.textContent = client.name;
+                    select.appendChild(option);
+                });
+                
+                // Also try to load organizations for backward compatibility
+                try {
+                    const orgResponse = await fetch('/api/organisations');
+                    const orgs = await orgResponse.json();
+                    orgs.forEach(org => {
+                        const option = document.createElement('option');
+                        option.value = 'org_' + JSON.stringify(org);
+                        option.textContent = `${org.name} (${org.domain})`;
+                        select.appendChild(option);
+                    });
+                } catch (e) {}
+            } catch (error) {
+                console.error('Error loading clients:', error);
+            }
+        }
+        
+        function fillClient() {
+            const select = document.getElementById('orgSelect');
+            if (!select.value) {
+                document.getElementById('editOrgBtn').style.display = 'none';
+                selectedOrg = null;
+                return;
+            }
+            
+            // Check if it's an organization (legacy) or client
+            if (select.value.startsWith('org_')) {
+                selectedOrg = JSON.parse(select.value.substring(4));
+                document.getElementById('editOrgBtn').style.display = 'inline-block';
+                
+                if (selectedOrg.billing_address) {
+                    document.getElementById('billTo').value = selectedOrg.billing_address;
+                    document.getElementById('shipTo').value = selectedOrg.shipping_address || selectedOrg.billing_address;
+                } else {
+                    const defaultAddress = `${selectedOrg.name}\n${selectedOrg.domain}`;
+                    document.getElementById('billTo').value = defaultAddress;
+                    document.getElementById('shipTo').value = defaultAddress;
+                }
+            } else {
+                // It's a client ID
+                const clientId = parseInt(select.value);
+                const client = clientsData.find(c => c.id === clientId);
+                if (client) {
+                    selectedOrg = { id: clientId, name: client.name, isClient: true };
+                    document.getElementById('editOrgBtn').style.display = 'inline-block';
+                    
+                    // Check for saved billing/shipping details
+                    if (client.billing_address) {
+                        document.getElementById('billTo').value = client.billing_address;
+                        document.getElementById('shipTo').value = client.shipping_address || client.billing_address;
+                    } else {
+                        document.getElementById('billTo').value = client.name;
+                        document.getElementById('shipTo').value = client.name;
+                    }
+                }
+            }
+        }
+        
+        function openOrgModal() {
+            if (!selectedOrg) return;
+            
+            // Use name for clients, domain for legacy orgs
+            const identifier = selectedOrg.isClient ? selectedOrg.name : selectedOrg.domain;
+            document.getElementById('editOrgDomain').value = identifier;
+            
+            // Use saved values from database (via selectedOrg) or current form values
+            if (selectedOrg.billing_address) {
+                document.getElementById('editBillingAddress').value = selectedOrg.billing_address;
+                document.getElementById('editShippingAddress').value = selectedOrg.shipping_address || '';
+            } else {
+                document.getElementById('editBillingAddress').value = document.getElementById('billTo').value;
+                document.getElementById('editShippingAddress').value = document.getElementById('shipTo').value;
+            }
+            
+            document.getElementById('orgModal').style.display = 'block';
+        }
+        
+        function closeOrgModal() {
+            document.getElementById('orgModal').style.display = 'none';
+        }
+        
+        async function saveOrgDetails() {
+            const billing = document.getElementById('editBillingAddress').value;
+            const shipping = document.getElementById('editShippingAddress').value;
+            
+            try {
+                if (selectedOrg && selectedOrg.isClient) {
+                    // Save to clients table
+                    await fetch(`/api/production/clients/${selectedOrg.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            billing_address: billing,
+                            shipping_address: shipping
+                        })
+                    });
+                } else {
+                    // Save to organisation_details table (legacy)
+                    const domain = document.getElementById('editOrgDomain').value;
+                    await fetch('/api/organisation/details', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            domain: domain,
+                            billing_address: billing,
+                            shipping_address: shipping
+                        })
+                    });
+                }
+                
+                // Update the form
+                document.getElementById('billTo').value = billing;
+                document.getElementById('shipTo').value = shipping;
+                
+                // Update selectedOrg
+                if (selectedOrg) {
+                    selectedOrg.billing_address = billing;
+                    selectedOrg.shipping_address = shipping;
+                }
+                
+                // Reload clients to get updated data
+                await loadClients();
+                
+                closeOrgModal();
+                alert('Details saved to database!');
+            } catch (error) {
+                console.error('Error saving details:', error);
+                alert('Error saving details');
+            }
+        }
+        
+        function formatCurrency(value) {
+            const num = parseFloat(value || 0);
+            return '€' + num.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        
+        function parseCurrency(str) {
+            // Parse €1.234,56 format to number
+            return parseFloat(str.replace(/[€\s]/g, '').replace(/\./g, '').replace(',', '.')) || 0;
+        }
+        
+        function calculateTotals() {
+            const rows = document.querySelectorAll('.item-row');
+            let subtotal = 0;
+            
+            rows.forEach(row => {
+                const quantity = parseFloat(row.querySelector('.quantity').value) || 0;
+                const unitPrice = parseFloat(row.querySelector('.unit-price').value) || 0;
+                const amount = quantity * unitPrice;
+                row.querySelector('.amount').textContent = formatCurrency(amount);
+                subtotal += amount;
+            });
+            
+            const taxRate = parseFloat(document.getElementById('taxRate').value) || 0;
+            const shipping = parseFloat(document.getElementById('shipping').value) || 0;
+            const taxAmount = subtotal * (taxRate / 100);
+            const total = subtotal + taxAmount + shipping;
+            
+            document.getElementById('subtotal').textContent = formatCurrency(subtotal);
+            document.getElementById('taxAmount').textContent = formatCurrency(taxAmount);
+            document.getElementById('total').textContent = formatCurrency(total);
+            document.getElementById('deposit').textContent = formatCurrency(total * 0.5);
+        }
+        
+        function addRow() {
+            const tbody = document.getElementById('itemsBody');
+            const row = document.createElement('tr');
+            row.className = 'item-row';
+            row.innerHTML = `
+                <td><textarea class="description" placeholder="Item description"></textarea></td>
+                <td><input type="number" class="quantity" placeholder="0" value="1" step="1"></td>
+                <td><input type="number" class="unit-price" placeholder="0.00" value="0.00" step="0.01"></td>
+                <td class="amount text-right">€0,00</td>
+                <td class="action-col text-right"><button class="btn-small delete" onclick="deleteRow(this)">Delete</button></td>
+            `;
+            tbody.appendChild(row);
+            
+            row.querySelector('.quantity').addEventListener('input', calculateTotals);
+            row.querySelector('.unit-price').addEventListener('input', calculateTotals);
+            calculateTotals();
+        }
+        
+        let productsData = [];
+        
+        async function loadProducts() {
+            try {
+                const response = await fetch('/api/production/products');
+                productsData = await response.json();
+                const select = document.getElementById('productSelect');
+                
+                // Clear existing options except first
+                select.innerHTML = '<option value="">-- Select Product --</option>';
+                
+                productsData.forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product.id;
+                    option.textContent = product.name;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
+        
+        async function addProductFromSelect(selectEl) {
+            const productId = parseInt(selectEl.value);
+            if (!productId) return;
+            
+            const product = productsData.find(p => p.id === productId);
+            if (!product) return;
+            
+            const description = product.description || product.name;
+            let price = product.price || 0;
+            
+            // Check for client-specific pricing
+            if (selectedOrg && selectedOrg.isClient && selectedOrg.id) {
+                try {
+                    const response = await fetch(`/api/production/product-price?client_id=${selectedOrg.id}&product_id=${productId}`);
+                    const priceData = await response.json();
+                    if (priceData.price !== undefined) {
+                        price = priceData.price;
+                    }
+                } catch (e) {
+                    console.error('Error fetching client price:', e);
+                }
+            }
+            
+            const tbody = document.getElementById('itemsBody');
+            const row = document.createElement('tr');
+            row.className = 'item-row';
+            row.innerHTML = `
+                <td><textarea class="description">${description}</textarea></td>
+                <td><input type="number" class="quantity" value="1" step="1"></td>
+                <td><input type="number" class="unit-price" value="${price}" step="0.01"></td>
+                <td class="amount text-right">€0,00</td>
+                <td class="action-col text-right"><button class="btn-small delete" onclick="deleteRow(this)">Delete</button></td>
+            `;
+            tbody.appendChild(row);
+            
+            row.querySelector('.quantity').addEventListener('input', calculateTotals);
+            row.querySelector('.unit-price').addEventListener('input', calculateTotals);
+            calculateTotals();
+            
+            // Reset select
+            selectEl.value = '';
+        }
+        
+        function deleteRow(btn) {
+            const row = btn.closest('.item-row');
+            if (document.querySelectorAll('.item-row').length > 1) {
+                row.remove();
+                calculateTotals();
+            } else {
+                alert('You must keep at least one item row.');
+            }
+        }
+        
+        function resetForm() {
+            if (confirm('Are you sure you want to clear the entire form?')) {
+                location.reload();
+            }
+        }
+        
+        let isSaving = false;  // Prevent double-save
+        
+        async function saveProforma() {
+            // Prevent double-save on refresh
+            if (isSaving) return;
+            
+            const invoiceNo = document.getElementById('invoiceNo').value.trim();
+            if (!invoiceNo) {
+                alert('Please enter an Invoice Number before saving.');
+                return;
+            }
+            
+            isSaving = true;
+            
+            // Collect all data
+            const items = [];
+            document.querySelectorAll('.item-row').forEach(row => {
+                items.push({
+                    description: row.querySelector('.description').value,
+                    quantity: parseFloat(row.querySelector('.quantity').value) || 0,
+                    unit_price: parseFloat(row.querySelector('.unit-price').value) || 0
+                });
+            });
+            
+            // Parse totals correctly
+            const subtotal = parseCurrency(document.getElementById('subtotal').textContent);
+            const total = parseCurrency(document.getElementById('total').textContent);
+            
+            const data = {
+                invoice_number: invoiceNo,
+                invoice_date: document.getElementById('invoiceDate').value,
+                valid_until: document.getElementById('validUntil').value,
+                buyers_ref: document.getElementById('buyersRef').value,
+                bill_to: document.getElementById('billTo').value,
+                ship_to: document.getElementById('shipTo').value,
+                items: items,
+                tax_rate: parseFloat(document.getElementById('taxRate').value) || 0,
+                shipping: parseFloat(document.getElementById('shipping').value) || 0,
+                notes: document.getElementById('notes').value,
+                subtotal: subtotal,
+                total: total,
+                status: document.getElementById('invoiceStatus').value
+            };
+            
+            console.log('Saving proforma:', data);
+            
+            try {
+                const response = await fetch('/api/proforma/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                console.log('Save result:', result);
+                
+                if (response.ok && result.success) {
+                    const msg = document.getElementById('savedMessage');
+                    msg.style.display = 'block';
+                    
+                    // Hide message after 3 seconds
+                    setTimeout(() => {
+                        msg.style.display = 'none';
+                    }, 3000);
+                    
+                    isSaving = false;  // Allow saving again
+                } else {
+                    alert('Failed to save pro forma invoice: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error saving:', error);
+                alert('Error saving pro forma invoice: ' + error.message);
+                isSaving = false;  // Reset on error
+            }
+        }
+        
+        // Event listeners
+        document.querySelectorAll('.quantity, .unit-price').forEach(input => {
+            input.addEventListener('input', calculateTotals);
+        });
+        document.getElementById('taxRate').addEventListener('input', calculateTotals);
+        document.getElementById('shipping').addEventListener('input', calculateTotals);
+        
+        calculateTotals();
+    </script>
+</body>
+</html>
