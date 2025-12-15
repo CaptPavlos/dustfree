@@ -82,6 +82,50 @@ def get_cursor(conn):
         return conn.cursor()
 
 
+class DatabaseConnection:
+    """Backward-compatible database connection that works both as context manager and regular object."""
+    def __init__(self):
+        if USE_POSTGRES:
+            self.conn = psycopg2.connect(DATABASE_URL)
+            self.conn.autocommit = False
+        else:
+            self.conn = sqlite3.connect(SQLITE_PATH)
+            self.conn.row_factory = dict_factory
+        self._should_close = True
+    
+    def cursor(self):
+        """Get a cursor with dict-like row access."""
+        return get_cursor(self.conn)
+    
+    def commit(self):
+        """Commit the transaction."""
+        self.conn.commit()
+    
+    def rollback(self):
+        """Rollback the transaction."""
+        self.conn.rollback()
+    
+    def close(self):
+        """Close the connection."""
+        if self._should_close:
+            self.conn.close()
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type:
+            self.rollback()
+        else:
+            self.commit()
+        self.close()
+
+
+def get_db_connection():
+    """Get a database connection that works both as context manager and regular object."""
+    return DatabaseConnection()
+
+
 def execute_query(conn, query, params=None):
     """Execute a query with automatic placeholder conversion."""
     cursor = get_cursor(conn)
