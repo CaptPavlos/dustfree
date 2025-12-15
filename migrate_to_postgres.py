@@ -69,6 +69,18 @@ def get_table_columns(sqlite_cursor, table_name):
     return [row[1] for row in sqlite_cursor.fetchall()]
 
 
+def clean_row_data(row_data, columns):
+    """Clean row data - convert empty strings to None for date columns."""
+    date_columns = ['date', 'date_ordered', 'date_prod_start', 'date_prod_end', 
+                    'date_warehouse', 'date_delivered', 'feedback_date', 'date_received',
+                    'read_at', 'created_at', 'updated_at']
+    cleaned = list(row_data)
+    for i, (val, col) in enumerate(zip(cleaned, columns)):
+        if col in date_columns and val == '':
+            cleaned[i] = None
+    return tuple(cleaned)
+
+
 def migrate_table(sqlite_conn, pg_conn, table_name):
     """Migrate a single table from SQLite to PostgreSQL."""
     sqlite_cursor = sqlite_conn.cursor()
@@ -115,16 +127,32 @@ def migrate_table(sqlite_conn, pg_conn, table_name):
     # Clear existing data in PostgreSQL table
     pg_cursor.execute(f"DELETE FROM {table_name}")
     
+    # Disable foreign key checks for this table during insert
+    pg_cursor.execute("SET session_replication_role = 'replica';")
+    
     # Insert data
     columns_str = ', '.join(insert_columns)
     placeholders = ', '.join(['%s'] * len(insert_columns))
     
+    migrated = 0
+    errors = 0
     try:
         for row_data in data:
-            pg_cursor.execute(
-                f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})",
-                row_data
-            )
+            try:
+                # Clean the data (convert empty strings to None for dates)
+                cleaned_data = clean_row_data(row_data, insert_columns)
+                pg_cursor.execute(
+                    f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})",
+                    cleaned_data
+                )
+                migrated += 1
+            except Exception as row_error:
+                errors += 1
+                if errors <= 3:  # Only show first 3 errors
+                    print(f"    Row error: {row_error}")
+        
+        # Re-enable foreign key checks
+        pg_cursor.execute("SET session_replication_role = 'origin';")
         
         # Reset sequence for tables with SERIAL id
         if 'id' in columns and table_name not in ['app_settings', 'entity_categories',
@@ -136,10 +164,14 @@ def migrate_table(sqlite_conn, pg_conn, table_name):
                               true)
             """)
         
-        print(f"  {table_name}: {len(rows)} rows migrated")
-        return len(rows)
+        if errors > 0:
+            print(f"  {table_name}: {migrated} rows migrated ({errors} errors)")
+        else:
+            print(f"  {table_name}: {migrated} rows migrated")
+        return migrated
     except Exception as e:
         print(f"  ERROR migrating {table_name}: {e}")
+        pg_cursor.execute("SET session_replication_role = 'origin';")
         pg_conn.rollback()
         return 0
 

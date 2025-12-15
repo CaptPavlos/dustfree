@@ -144,7 +144,8 @@ def _init_postgres_tables(cursor):
             body_text TEXT,
             body_html TEXT,
             headers TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            folder TEXT DEFAULT 'INBOX'
         )
     ''')
     
@@ -155,8 +156,9 @@ def _init_postgres_tables(cursor):
             email_id INTEGER REFERENCES emails(id),
             filename TEXT,
             content_type TEXT,
+            size INTEGER,
             file_path TEXT,
-            file_size INTEGER,
+            file_hash TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -166,15 +168,17 @@ def _init_postgres_tables(cursor):
         CREATE TABLE IF NOT EXISTS parsed_invoices (
             id SERIAL PRIMARY KEY,
             attachment_id INTEGER REFERENCES attachments(id),
+            email_id INTEGER,
             invoice_number TEXT,
             invoice_date TEXT,
-            total_amount REAL,
+            amount REAL,
             currency TEXT,
             vendor TEXT,
             raw_text TEXT,
-            parsed_data TEXT,
-            amount_edited INTEGER DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            hidden INTEGER DEFAULT 0,
+            assigned_tab TEXT,
+            amount_edited INTEGER DEFAULT 0
         )
     ''')
     
@@ -263,13 +267,16 @@ def _init_postgres_tables(cursor):
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS production_runs (
             id SERIAL PRIMARY KEY,
-            client TEXT,
             order_ref TEXT,
             product TEXT,
             quantity INTEGER,
             status TEXT DEFAULT 'pending',
             notes TEXT,
+            date DATE DEFAULT CURRENT_DATE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            client TEXT,
             scheduled_month TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             eta_month TEXT,
             date_ordered DATE,
             downpayment_paid INTEGER DEFAULT 0,
@@ -279,9 +286,7 @@ def _init_postgres_tables(cursor):
             paid_off INTEGER DEFAULT 0,
             date_delivered DATE,
             price_per_roll REAL DEFAULT 0,
-            cost_per_roll REAL DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            cost_per_roll REAL DEFAULT 0
         )
     ''')
     
