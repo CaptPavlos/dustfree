@@ -360,9 +360,9 @@ def set_setting(key, value):
 # Initialize tables
 init_base_tables()
 init_read_status_table()
+init_production_tables()
 init_entity_categories_table()
 add_amount_edited_column()
-init_production_tables()
 init_products_clients_tables()
 
 # Initialize ChromaDB
