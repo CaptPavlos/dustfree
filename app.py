@@ -1,5 +1,4 @@
 import os
-import sqlite3
 import json
 import re
 from flask import Flask, render_template, request, jsonify, redirect, session, url_for
@@ -9,6 +8,10 @@ import requests
 import threading
 from datetime import datetime
 from dotenv import load_dotenv
+from database import (
+    get_db_connection, get_cursor, execute_query, fetchall, fetchone,
+    init_all_tables, get_setting, set_setting, USE_POSTGRES, IntegrityError
+)
 
 # Load environment variables
 load_dotenv()
@@ -61,309 +64,11 @@ def add_header(response):
 PERPLEXITY_API_KEY = os.environ.get('PERPLEXITY_API_KEY', '')
 PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions"
 
+# Database path for SQLite (local dev) - PostgreSQL is configured via DATABASE_URL env var
 DB_PATH = 'email_archive.db'
 
-def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def init_base_tables():
-    """Create base tables if they don't exist (for fresh deployments)."""
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        # Emails table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS emails (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                message_id TEXT UNIQUE,
-                subject TEXT,
-                from_address TEXT,
-                to_address TEXT,
-                date_received DATETIME,
-                body_text TEXT,
-                body_html TEXT,
-                headers TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        # Attachments table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS attachments (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                email_id INTEGER,
-                filename TEXT,
-                content_type TEXT,
-                file_path TEXT,
-                file_size INTEGER,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (email_id) REFERENCES emails(id)
-            )
-        ''')
-        # Parsed invoices table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS parsed_invoices (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                attachment_id INTEGER,
-                invoice_number TEXT,
-                invoice_date TEXT,
-                total_amount REAL,
-                currency TEXT,
-                vendor TEXT,
-                raw_text TEXT,
-                parsed_data TEXT,
-                amount_edited INTEGER DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (attachment_id) REFERENCES attachments(id)
-            )
-        ''')
-        # App settings table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS app_settings (
-                key TEXT PRIMARY KEY,
-                value TEXT,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        # Create indexes
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_emails_from ON emails(from_address)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_emails_date ON emails(date_received DESC)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_attachments_email ON attachments(email_id)')
-        conn.commit()
-
-def init_read_status_table():
-    """Create table to track read status of emails."""
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS email_read_status (
-                email_id INTEGER PRIMARY KEY,
-                is_read INTEGER DEFAULT 0,
-                read_at DATETIME
-            )
-        ''')
-        conn.commit()
-
-def init_entity_categories_table():
-    """Create table to store user-defined entity category overrides."""
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS entity_categories (
-                domain TEXT PRIMARY KEY,
-                category TEXT NOT NULL,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Table for organization files
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS organization_files (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                domain TEXT NOT NULL,
-                attachment_id INTEGER,
-                filename TEXT,
-                file_path TEXT,
-                notes TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (attachment_id) REFERENCES attachments(id)
-            )
-        ''')
-        
-        # Table for organization names (aliases)
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS organization_names (
-                domain TEXT PRIMARY KEY,
-                display_name TEXT NOT NULL,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Table for email-to-organization assignments
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS email_organization_assignments (
-                email_address TEXT PRIMARY KEY,
-                organization_domain TEXT NOT NULL,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Table for organization relationships
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS organization_relationships (
-                domain TEXT PRIMARY KEY,
-                related_domain TEXT,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Performance indexes
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_attachments_email ON attachments(email_id)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_attachments_filename ON attachments(filename)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_org_files_domain ON organization_files(domain)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_production_runs_client ON production_runs(client)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_production_runs_status ON production_runs(status)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_emails_subject ON emails(subject)')
-        
-        conn.commit()
-
-def add_amount_edited_column():
-    """Add amount_edited column to parsed_invoices table if it doesn't exist."""
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        try:
-            cursor.execute('ALTER TABLE parsed_invoices ADD COLUMN amount_edited INTEGER DEFAULT 0')
-            conn.commit()
-        except sqlite3.OperationalError:
-            pass  # Column already exists
-
-def init_production_tables():
-    """Create tables for production tracking."""
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        # Production feedback table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS production_feedback (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                description TEXT,
-                status TEXT DEFAULT 'pending',
-                files TEXT,
-                feedback_date DATE,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        # Add feedback_date column if not exists
-        try:
-            cursor.execute('ALTER TABLE production_feedback ADD COLUMN feedback_date DATE')
-        except sqlite3.OperationalError:
-            pass
-        # Production runs table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS production_runs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                client TEXT,
-                order_ref TEXT,
-                product TEXT,
-                quantity INTEGER,
-                status TEXT DEFAULT 'pending',
-                notes TEXT,
-                scheduled_month TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        # Add new columns if they don't exist
-        new_columns = [
-            ('client', 'TEXT'),
-            ('scheduled_month', 'TEXT'),
-            ('updated_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP'),
-            ('eta_month', 'TEXT'),
-            ('date_ordered', 'DATE'),
-            ('downpayment_paid', 'INTEGER DEFAULT 0'),
-            ('date_prod_start', 'DATE'),
-            ('date_prod_end', 'DATE'),
-            ('date_warehouse', 'DATE'),
-            ('paid_off', 'INTEGER DEFAULT 0'),
-            ('date_delivered', 'DATE'),
-            ('price_per_roll', 'REAL DEFAULT 0'),
-            ('cost_per_roll', 'REAL DEFAULT 0')
-        ]
-        for col_name, col_type in new_columns:
-            try:
-                cursor.execute(f'ALTER TABLE production_runs ADD COLUMN {col_name} {col_type}')
-            except sqlite3.OperationalError:
-                pass
-        conn.commit()
-
-def init_products_clients_tables():
-    """Create tables for products and clients management."""
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        # Products table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS products (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL UNIQUE,
-                description TEXT,
-                price REAL DEFAULT 0,
-                notes TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        # Add price and notes columns if they don't exist
-        for col_name, col_type in [('price', 'REAL DEFAULT 0'), ('notes', 'TEXT')]:
-            try:
-                cursor.execute(f'ALTER TABLE products ADD COLUMN {col_name} {col_type}')
-            except sqlite3.OperationalError:
-                pass
-        # Clients table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS clients (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL UNIQUE,
-                contact_info TEXT,
-                billing_address TEXT,
-                shipping_address TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        # Add billing/shipping/country columns if they don't exist
-        for col_name in ['billing_address', 'shipping_address', 'country']:
-            try:
-                cursor.execute(f'ALTER TABLE clients ADD COLUMN {col_name} TEXT')
-            except sqlite3.OperationalError:
-                pass
-        # Client-Product pricing table (client-specific prices)
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS client_product_prices (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                client_id INTEGER NOT NULL,
-                product_id INTEGER NOT NULL,
-                price REAL NOT NULL DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (client_id) REFERENCES clients(id),
-                FOREIGN KEY (product_id) REFERENCES products(id),
-                UNIQUE(client_id, product_id)
-            )
-        ''')
-        # App settings table for persisting sync status etc.
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS app_settings (
-                key TEXT PRIMARY KEY,
-                value TEXT,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        conn.commit()
-
-def get_setting(key, default=None):
-    """Get a setting from the database."""
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute('SELECT value FROM app_settings WHERE key = ?', (key,))
-        row = cursor.fetchone()
-        return row[0] if row else default
-
-def set_setting(key, value):
-    """Set a setting in the database."""
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT OR REPLACE INTO app_settings (key, value, updated_at) 
-            VALUES (?, ?, CURRENT_TIMESTAMP)
-        ''', (key, value))
-        conn.commit()
-
-# Initialize tables
-init_base_tables()
-init_read_status_table()
-init_production_tables()
-init_entity_categories_table()
-add_amount_edited_column()
-init_products_clients_tables()
+# Initialize all database tables (supports both SQLite and PostgreSQL)
+init_all_tables()
 
 # Initialize ChromaDB
 def init_chromadb():
@@ -3035,8 +2740,7 @@ def add_product():
         product_id = cursor.lastrowid
         conn.close()
         return jsonify({'success': True, 'id': product_id, 'name': name})
-    except sqlite3.IntegrityError:
-        conn.close()
+    except IntegrityError:
         return jsonify({'success': False, 'error': 'Product already exists'}), 400
 
 @app.route('/api/production/products/<int:product_id>', methods=['PUT'])
@@ -3167,8 +2871,7 @@ def add_client():
         client_id = cursor.lastrowid
         conn.close()
         return jsonify({'success': True, 'id': client_id, 'name': name})
-    except sqlite3.IntegrityError:
-        conn.close()
+    except IntegrityError:
         return jsonify({'success': False, 'error': 'Client already exists'}), 400
 
 @app.route('/api/production/clients/<int:client_id>', methods=['DELETE'])
@@ -3272,33 +2975,7 @@ ORG_FILES_FOLDER = os.path.join(UPLOAD_FOLDER, 'organizations')
 for folder in [UPLOAD_FOLDER, PRODUCTION_FILES_FOLDER, FEEDBACK_FILES_FOLDER, ORG_FILES_FOLDER]:
     os.makedirs(folder, exist_ok=True)
 
-# Create production_files table
-def init_production_files_table():
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS production_files (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                client TEXT,
-                filename TEXT,
-                filepath TEXT,
-                description TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS organization_files (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                domain TEXT,
-                filename TEXT,
-                filepath TEXT,
-                description TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        conn.commit()
-
-init_production_files_table()
+# Production files table is now created in database.py init_all_tables()
 
 @app.route('/uploads/<path:filename>')
 def serve_upload(filename):

@@ -9,5 +9,6 @@ pdfplumber>=0.10.0
 pdfservices-sdk>=4.0.0
 gunicorn>=21.0.0
 flask-compress>=1.14
+psycopg2-binary>=2.9.0
 chromadb>=0.4.0
 sentence-transformers>=2.2.0
