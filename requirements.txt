@@ -9,9 +9,5 @@ pdfplumber>=0.10.0
 pdfservices-sdk>=4.0.0
 gunicorn>=21.0.0
 flask-compress>=1.14
-# CPU-only PyTorch (much smaller, no CUDA)
---extra-index-url https://download.pytorch.org/whl/cpu
-torch
-# ML dependencies (will use CPU torch)
 chromadb>=0.4.0
 sentence-transformers>=2.2.0
