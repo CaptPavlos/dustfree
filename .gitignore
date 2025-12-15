@@ -37,6 +37,7 @@ chroma_db/
 # Text reports (generated)
 *.txt
 !requirements.txt
+!runtime.txt
 
 # OS
 .DS_Store

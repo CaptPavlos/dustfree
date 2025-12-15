@@ -68,6 +68,69 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def init_base_tables():
+    """Create base tables if they don't exist (for fresh deployments)."""
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        # Emails table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS emails (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                message_id TEXT UNIQUE,
+                subject TEXT,
+                from_address TEXT,
+                to_address TEXT,
+                date_received DATETIME,
+                body_text TEXT,
+                body_html TEXT,
+                headers TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        # Attachments table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS attachments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email_id INTEGER,
+                filename TEXT,
+                content_type TEXT,
+                file_path TEXT,
+                file_size INTEGER,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (email_id) REFERENCES emails(id)
+            )
+        ''')
+        # Parsed invoices table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS parsed_invoices (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                attachment_id INTEGER,
+                invoice_number TEXT,
+                invoice_date TEXT,
+                total_amount REAL,
+                currency TEXT,
+                vendor TEXT,
+                raw_text TEXT,
+                parsed_data TEXT,
+                amount_edited INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (attachment_id) REFERENCES attachments(id)
+            )
+        ''')
+        # App settings table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS app_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        # Create indexes
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_emails_from ON emails(from_address)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_emails_date ON emails(date_received DESC)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_attachments_email ON attachments(email_id)')
+        conn.commit()
+
 def init_read_status_table():
     """Create table to track read status of emails."""
     with sqlite3.connect(DB_PATH) as conn:
@@ -295,6 +358,7 @@ def set_setting(key, value):
         conn.commit()
 
 # Initialize tables
+init_base_tables()
 init_read_status_table()
 init_entity_categories_table()
 add_amount_edited_column()
