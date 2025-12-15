@@ -1,0 +1,18 @@
+# Railway Configuration
+
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120"
+
+# Cron job to sync emails every hour
+[[crons]]
+name = "email-sync"
+schedule = "0 * * * *"  # Every hour at minute 0
+command = "curl -X POST https://dust-free.up.railway.app/api/sync/cron || true"
+
+# Alternative schedules (uncomment the one you want):
+# Every 30 minutes: "*/30 * * * *"
+# Every 6 hours: "0 */6 * * *"
+# Every day at 9am UTC: "0 9 * * *"

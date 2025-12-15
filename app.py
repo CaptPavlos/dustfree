@@ -1998,9 +1998,63 @@ def get_sync_status():
     sync_status['last_sync'] = get_setting('last_sync')
     return jsonify(sync_status)
 
+@app.route('/api/sync/cron', methods=['GET', 'POST'])
+def cron_sync():
+    """Cron-friendly sync endpoint (no auth required for Railway Cron Jobs)."""
+    # Optional: Add basic token auth if you want extra security
+    # cron_token = request.args.get('token') or request.headers.get('X-Cron-Token')
+    # if cron_token != os.getenv('CRON_SECRET'):
+    #     return jsonify({'error': 'Unauthorized'}), 401
+    
+    global sync_status
+    
+    if sync_status['running']:
+        return jsonify({'error': 'Sync already in progress', 'status': 'skipped'}), 200
+    
+    # Run sync synchronously for cron (no threading needed)
+    try:
+        sync_status['running'] = True
+        sync_status['message'] = 'Cron sync started...'
+        
+        from email_archiver import EmailArchiver
+        archiver = EmailArchiver()
+        
+        email_address = os.getenv('IMAP_EMAIL')
+        password = os.getenv('IMAP_PASSWORD')
+        imap_server = os.getenv('IMAP_SERVER', 'imap.gmail.com')
+        
+        if not email_address or not password:
+            sync_status['running'] = False
+            return jsonify({'error': 'IMAP credentials not configured', 'status': 'failed'}), 500
+        
+        if archiver.connect_to_email(email_address, password, imap_server):
+            archiver.download_emails(folder='INBOX', limit=500)
+            try:
+                archiver.download_emails(folder='Sent', limit=500)
+            except:
+                try:
+                    archiver.download_emails(folder='[Gmail]/Sent Mail', limit=500)
+                except:
+                    pass
+            
+            sync_status['message'] = 'Cron sync completed'
+            sync_status['last_sync'] = datetime.now().isoformat()
+            set_setting('last_sync', sync_status['last_sync'])
+            sync_status['running'] = False
+            return jsonify({'success': True, 'status': 'completed', 'last_sync': sync_status['last_sync']}), 200
+        else:
+            sync_status['running'] = False
+            return jsonify({'error': 'Failed to connect to IMAP', 'status': 'failed'}), 500
+            
+    except Exception as e:
+        sync_status['message'] = f'Cron sync error: {str(e)}'
+        sync_status['running'] = False
+        return jsonify({'error': str(e), 'status': 'failed'}), 500
+
+
 @app.route('/api/sync/start', methods=['POST'])
 def start_sync():
-    """Start IMAP sync in background thread."""
+    """Start IMAP sync in background thread (for manual button clicks)."""
     global sync_status
     
     if sync_status['running']:
