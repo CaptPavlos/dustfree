@@ -93,9 +93,15 @@ class DatabaseConnection:
             self.conn.row_factory = dict_factory
         self._should_close = True
     
-    def cursor(self):
+    def cursor(self, cursor_factory=None):
         """Get a cursor with dict-like row access."""
-        return get_cursor(self.conn)
+        if USE_POSTGRES:
+            if cursor_factory:
+                return self.conn.cursor(cursor_factory=cursor_factory)
+            else:
+                return self.conn.cursor(cursor_factory=RealDictCursor)
+        else:
+            return self.conn.cursor()
     
     def commit(self):
         """Commit the transaction."""
